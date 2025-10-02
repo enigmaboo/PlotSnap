@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>PlotSnap</title>
+  <style>
+    :root {
+      --bg: #f6f7fb;
+      --fg: #111827;
+      --muted: #6b7280;
+      --line: #e5e7eb;
+      --panel: #ffffff;
+      --accent: #2563eb;
+    }
+
+    html,
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial
+    }
+
+    .wrap {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      padding: 12px;
+      max-width: 1200px;
+      margin: 0 auto
+    }
+
+    @media (max-width:860px) {
+      .wrap {
+        grid-template-columns: 1fr
+      }
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      color: var(--muted);
+      margin: 0 0 6px
+    }
+
+    input,
+    select {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fff;
+      font-size: 16px;
+      color: var(--fg);
+      box-sizing: border-box;
+      min-width: 0
+    }
+
+    input[type="number"] {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      appearance: textfield;
+    }
+
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button {
+      appearance: none;
+      margin: 0
+    }
+
+    .row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap
+    }
+
+    .row>* {
+      flex: 1 1 0;
+      min-width: 0
+    }
+
+    .btn {
+      appearance: none;
+      border: none;
+      background: var(--accent);
+      color: #fff;
+      padding: 12px;
+      border-radius: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%
+    }
+
+    .btn[disabled] {
+      opacity: .6;
+      cursor: not-allowed
+    }
+
+    .btn.ghost {
+      background: #fff;
+      color: var(--fg);
+      border: 1px solid var(--line)
+    }
+
+    .muted {
+      color: var(--muted)
+    }
+
+    .small {
+      font-size: 12px
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px
+    }
+
+    .stat {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px
+    }
+
+    .stat b {
+      display: block;
+      font-size: 20px;
+      margin-top: 6px;
+      word-break: break-word
+    }
+
+    #areaUnits.big {
+      font-size: 18px;
+      padding: 14px 12px;
+      border-radius: 12px
+    }
+
+    .mini {
+      width: auto;
+      padding: 6px 8px;
+      font-size: 14px
+    }
+
+    .canvas-wrap {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 3/2;
+      border: 1px dashed var(--line);
+      border-radius: 12px;
+      background: #fff;
+      overflow: hidden
+    }
+
+    canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      touch-action: manipulation
+    }
+
+    .pill {
+      display: inline-block;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 2px 8px;
+      font-size: 12px;
+      background: #fff
+    }
+
+    .pill.emph {
+      background: rgba(37, 99, 235, 0.12);
+      border-color: #2563eb;
+      font-weight: 600
+    }
+
+    .err {
+      color: #b91c1c;
+      font-size: 13px;
+      margin-top: 6px
+    }
+
+    .sticky-actions {
+      position: sticky;
+      bottom: 0;
+      background: linear-gradient(180deg, rgba(246, 247, 251, 0), var(--bg));
+      padding-top: 8px
+    }
+
+    .steps {
+      margin-top: 12px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px
+    }
+
+    .stepbox {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px;
+      background: #fff
+    }
+
+    .stepbox h4 {
+      margin: 0 0 6px;
+      font-size: 14px
+    }
+
+    .stepbox .mono {
+      font-family: ui-monospace, SFMono-Regular, Consolas, Monaco, monospace
+    }
+
+    /* Mobile-friendly facing controls */
+    .facing-controls {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      margin-bottom: 6px
+    }
+
+    .facing-controls .field {
+      flex: 1 1 180px;
+      min-width: 160px
+    }
+
+    .facing-controls .actions {
+      display: flex;
+      gap: 8px;
+      flex: 0 0 auto;
+      align-items: center
+    }
+
+    @media (max-width:600px) {
+      .facing-controls .field select {
+        padding: 14px 12px;
+        min-height: 44px;
+        font-size: 16px
+      }
+
+      .facing-controls .field label {
+        font-size: 13px
+      }
+
+      .facing-controls .actions {
+        width: 100%;
+        justify-content: space-between;
+        margin-top: 6px
+      }
+
+      .facing-controls .field {
+        flex: 1 1 100%;
+        min-width: 100%
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <!-- LEFT: Inputs + results + steps -->
+    <section class="card">
+      <div class="row" style="margin-bottom:8px">
+        <div>
+          <label>Input Length Units</label>
+          <select id="lengthUnits">
+            <option value="m">Meters</option>
+            <option value="ft">Feet</option>
+          </select>
+        </div>
+        <div>
+          <label>Diagonal</label>
+          <select id="diagPick">
+            <option value="AC">AC</option>
+            <option value="BD">BD</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="small muted" style="margin:4px 0 6px">
+        Enter sides in order around the plot: <b>AB</b>, <b>BC</b>, <b>CD</b>, <b>DA</b>. Chosen diagonal is <b
+          id="diagText">AC</b>.
+      </div>
+
+      <div class="row">
+        <div><label>AB (a)</label><input id="ab" type="number" step="any" inputmode="decimal" placeholder="e.g., 30">
+        </div>
+        <div><label>BC (b)</label><input id="bc" type="number" step="any" inputmode="decimal" placeholder="e.g., 22">
+        </div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <div><label>CD (c)</label><input id="cd" type="number" step="any" inputmode="decimal" placeholder="e.g., 28">
+        </div>
+        <div><label>DA (d)</label><input id="da" type="number" step="any" inputmode="decimal" placeholder="e.g., 25">
+        </div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <div>
+          <label id="diagLabel">Diagonal (AC)</label>
+          <input id="diag" type="number" step="any" inputmode="decimal" placeholder="e.g., 35" />
+        </div>
+      </div>
+
+      <div class="sticky-actions">
+        <div class="row" style="margin-top:12px">
+          <button class="btn" id="calcBtn">Calculate & Preview</button>
+          <button class="btn ghost" id="clearBtn">Clear</button>
+        </div>
+      </div>
+
+      <div id="error" class="err" style="display:none"></div>
+
+      <div class="stats" style="margin-top:12px">
+        <div class="stat">
+          <div class="row" style="align-items:center;gap:10px">
+            <div style="flex:1 1 180px">
+              <label class="small muted" style="margin-bottom:4px">Output Area Units</label>
+              <select id="areaUnits" class="big" title="Output Area Units">
+                <option value="m2">m²</option>
+                <option value="ft2">ft²</option>
+                <option value="yd2">yd²</option>
+                <option value="are">are</option>
+                <option value="ha">hectare</option>
+                <option value="ac">acre</option>
+                <option value="cent" selected>cent</option>
+              </select>
+            </div>
+            <div style="flex:2 1 260px">
+              <span class="small muted">Total Area</span>
+              <b id="area">—</b>
+            </div>
+          </div>
+        </div>
+
+        <div class="stat">
+          <span class="small muted">Perimeter (length units)</span>
+          <b id="perimeter">—</b>
+        </div>
+      </div>
+
+      <div id="steps" class="steps"></div>
+    </section>
+
+    <!-- RIGHT: Facing controls + Preview -->
+    <section class="card">
+      <div class="facing-controls">
+        <div class="field">
+          <label>Facing Edge</label>
+          <select id="facingEdge">
+            <option value="AB">AB</option>
+            <option value="BC">BC</option>
+            <option value="CD">CD</option>
+            <option value="DA">DA</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Facing Direction</label>
+          <select id="facingDir">
+            <option value="N">North</option>
+            <option value="NE">North-East</option>
+            <option value="E">East</option>
+            <option value="SE">South-East</option>
+            <option value="S">South</option>
+            <option value="SW">South-West</option>
+            <option value="W">West</option>
+            <option value="NW">North-West</option>
+          </select>
+        </div>
+
+        <div class="actions">
+          <button id="saveBtn" class="btn mini" style="width:auto;padding:8px 10px; display:none;" disabled>Save
+            Diagram</button>
+          <div class="pill small" id="scaleInfo">autoscale</div>
+        </div>
+      </div>
+
+      <div class="muted small" style="margin-bottom:6px">Preview (constructed from lengths)</div>
+      <div class="canvas-wrap" id="canvasWrap">
+        <canvas id="canvas" aria-label="quadrilateral-preview"></canvas>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    (function () {
+      // Elements
+      const lengthUnits = document.getElementById('lengthUnits');
+      const areaUnits = document.getElementById('areaUnits');
+      const diagPick = document.getElementById('diagPick');
+      const diagLabel = document.getElementById('diagLabel');
+      const diagText = document.getElementById('diagText');
+
+      const abInp = document.getElementById('ab');
+      const bcInp = document.getElementById('bc');
+      const cdInp = document.getElementById('cd');
+      const daInp = document.getElementById('da');
+      const diagInp = document.getElementById('diag');
+
+      const facingEdgeSel = document.getElementById('facingEdge');
+      const facingDirSel = document.getElementById('facingDir');
+
+      const calcBtn = document.getElementById('calcBtn');
+      const clearBtn = document.getElementById('clearBtn');
+      const saveBtn = document.getElementById('saveBtn');
+      const errEl = document.getElementById('error');
+      const perEl = document.getElementById('perimeter');
+      const areaEl = document.getElementById('area');
+      const stepsEl = document.getElementById('steps');
+      const scaleInfo = document.getElementById('scaleInfo');
+
+      const wrap = document.getElementById('canvasWrap');
+      const canvas = document.getElementById('canvas');
+      const ctx = canvas.getContext('2d');
+
+      // Defaults (AB facing North)
+      facingEdgeSel.value = 'AB';
+      facingDirSel.value = 'N';
+
+      // Storage helpers
+      const SKEY = 'quad-triangulation-v4';
+      function saveState() {
+        try {
+          const data = {
+            lengthUnits: lengthUnits.value,
+            areaUnits: areaUnits.value,
+            diagPick: diagPick.value,
+            ab: abInp.value, bc: bcInp.value, cd: cdInp.value, da: daInp.value, diag: diagInp.value,
+            facingEdge: facingEdgeSel.value, facingDir: facingDirSel.value
+          };
+          localStorage.setItem(SKEY, JSON.stringify(data));
+        } catch (e) { }
+      }
+      function loadState() {
+        try {
+          const raw = localStorage.getItem(SKEY);
+          if (!raw) {
+            areaUnits.value = 'cent'; // default
+            return;
+          }
+          const s = JSON.parse(raw);
+          if (s.lengthUnits) lengthUnits.value = s.lengthUnits;
+          if (s.areaUnits) areaUnits.value = s.areaUnits; else areaUnits.value = 'cent';
+          if (s.diagPick) diagPick.value = s.diagPick;
+          if (s.ab != null) abInp.value = s.ab;
+          if (s.bc != null) bcInp.value = s.bc;
+          if (s.cd != null) cdInp.value = s.cd;
+          if (s.da != null) daInp.value = s.da;
+          if (s.diag != null) diagInp.value = s.diag;
+          if (s.facingEdge) facingEdgeSel.value = s.facingEdge;
+          if (s.facingDir) facingDirSel.value = s.facingDir;
+          updateDiagonalUI();
+        } catch (e) { areaUnits.value = 'cent'; }
+      }
+
+      // Responsive canvas sizing
+      let deviceScale = 1;
+      function sizeCanvas() {
+        const ratio = 3 / 2;
+        const w = wrap.clientWidth;
+        const h = Math.round(w / ratio);
+        const dpr = window.devicePixelRatio || 1;
+        deviceScale = dpr;
+        canvas.width = Math.round(w * dpr);
+        canvas.height = Math.round(h * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        if (last.pts) { draw(last.pts); } else { drawGrid(); }
+      }
+      new ResizeObserver(sizeCanvas).observe(wrap);
+      window.addEventListener('resize', sizeCanvas);
+
+      // Helpers
+      const fmt = (v, p = 2) => Number.isFinite(v) ? (Math.round(v * 10 ** p) / 10 ** p).toFixed(p) : '—';
+      const toM = v => lengthUnits.value === 'ft' ? v * 0.3048 : v;
+      const fromM = v => lengthUnits.value === 'ft' ? v / 0.3048 : v;
+      const uLabel = () => lengthUnits.value === 'ft' ? 'ft' : 'm';
+      const DIR_ANGLE = { E: 0, NE: 45, N: 90, NW: 135, W: 180, SW: 225, S: 270, SE: 315 };
+
+      function formatArea(areaM2, unit) {
+        switch (unit) {
+          case 'm2': return `${fmt(areaM2)} m²`;
+          case 'ft2': return `${fmt(areaM2 / (0.3048 ** 2))} ft²`;
+          case 'yd2': return `${fmt(areaM2 / 0.83612736)} yd²`;
+          case 'are': return `${fmt(areaM2 / 100)} a`;
+          case 'ha': return `${fmt(areaM2 / 10000, 4)} ha`;
+          case 'ac': return `${fmt(areaM2 * 0.000247105, 4)} ac`;
+          case 'cent': return `${fmt(areaM2 / 40.468564224, 4)} ct`;
+        }
+      }
+
+      function heron(a, b, c) { const s = (a + b + c) / 2; const val = s * (s - a) * (s - b) * (s - c); return val <= 0 ? NaN : Math.sqrt(val); }
+      function validTriangle(a, b, c) { return a > 0 && b > 0 && c > 0 && a + b > c && a + c > b && b + c > a; }
+
+      function circleIntersect(A, rA, B, rB) {
+        const dx = B.x - A.x, dy = B.y - A.y, d = Math.hypot(dx, dy);
+        if (d === 0 || d > rA + rB || d < Math.abs(rA - rB)) return null;
+        const a = (rA * rA - rB * rB + d * d) / (2 * d);
+        const h = Math.sqrt(Math.max(rA * rA - a * a, 0));
+        const xm = A.x + a * dx / d, ym = A.y + a * dy / d;
+        return [
+          { x: xm + (-dy * h / d), y: ym + (dx * h / d) },
+          { x: xm - (-dy * h / d), y: ym - (dx * h / d) }
+        ];
+      }
+      const chooseLower = (P) => P.sort((p, q) => p.y - q.y)[0];
+
+      function buildGeometryABTop(diagChoice, aM, bM, cM, dM, eM) {
+        const A = { x: 0, y: 0 }, B = { x: aM, y: 0 };
+        let C, D;
+
+        if (diagChoice === 'AC') {
+          const candsC = circleIntersect(A, eM, B, bM); if (!candsC) return null;
+          C = chooseLower(candsC);
+          const candsD = circleIntersect(A, dM, C, cM); if (!candsD) return null;
+          D = chooseLower(candsD);
+        } else {
+          const candsD = circleIntersect(A, dM, B, eM); if (!candsD) return null;
+          D = chooseLower(candsD);
+          const candsC = circleIntersect(B, bM, D, cM); if (!candsC) return null;
+          C = chooseLower(candsC);
+        }
+        return [A, B, C, D];
+      }
+
+      function signedArea(pts) { let s = 0; for (let i = 0; i < pts.length; i++) { const j = (i + 1) % pts.length; s += pts[i].x * pts[j].y - pts[j].x * pts[i].y; } return s / 2; }
+      function centroid(pts) { let x = 0, y = 0; for (const p of pts) { x += p.x; y += p.y; } return { x: x / pts.length, y: y / pts.length }; }
+
+      function rotateBy(pts, deg) {
+        const rad = deg * Math.PI / 180;
+        const cos = Math.cos(rad), sin = Math.sin(rad);
+        const c = centroid(pts);
+        return pts.map(p => ({
+          x: c.x + (p.x - c.x) * cos - (p.y - c.y) * sin,
+          y: c.y + (p.x - c.y) * sin + (p.y - c.y) * cos
+        }));
+      }
+
+      function applyFacing(pts, edgeName, dirName) {
+        function edgeIndices(name) {
+          switch (name) {
+            case 'AB': return [0, 1];
+            case 'BC': return [1, 2];
+            case 'CD': return [2, 3];
+            case 'DA': return [3, 0];
+          }
+        }
+        const desired = DIR_ANGLE[dirName.replace('-', '')];
+        const [i1, i2] = edgeIndices(edgeName);
+        const a = pts[i1], b = pts[i2];
+
+        const sArea = signedArea(pts);
+        const vx = b.x - a.x, vy = b.y - a.y;
+
+        const nx = (sArea < 0) ? (-vy) : (vy);
+        const ny = (sArea < 0) ? (vx) : (-vx);
+
+        let curAngle = Math.atan2(ny, nx) * 180 / Math.PI;
+        if (curAngle < 0) curAngle += 360;
+
+        let delta = desired - curAngle;
+        delta = ((delta + 540) % 360) - 180;
+
+        return rotateBy(pts, delta);
+      }
+
+      const last = {
+        areaM2: null, perimM: null, pts: null, A1M2: null, A2M2: null,
+        aM: null, bM: null, cM: null, dM: null, eM: null, diagChoice: 'AC',
+        stepsBlocks: []
+      };
+
+      function updateDiagonalUI() {
+        const pick = diagPick.value;
+        diagLabel.textContent = `Diagonal (${pick})`;
+        diagText.textContent = pick;
+      }
+
+      function computeAreasFor(diagChoice, aM, bM, cM, dM, eM) {
+        if (diagChoice === 'AC') {
+          if (!validTriangle(aM, bM, eM)) return { err: "Invalid triangle ABC (check AB, BC, AC)." };
+          if (!validTriangle(dM, cM, eM)) return { err: "Invalid triangle ACD (check DA, CD, AC)." };
+          return { A1: heron(aM, bM, eM), A2: heron(dM, cM, eM) };
+        } else {
+          if (!validTriangle(aM, dM, eM)) return { err: "Invalid triangle ABD (check AB, DA, BD)." };
+          if (!validTriangle(bM, cM, eM)) return { err: "Invalid triangle BCD (check BC, CD, BD)." };
+          return { A1: heron(aM, dM, eM), A2: heron(bM, cM, eM) };
+        }
+      }
+
+      function computeAndDraw() {
+        errEl.style.display = 'none'; stepsEl.innerHTML = '';
+        last.stepsBlocks = []; hideSave();
+
+        const aM = toM(Number(abInp.value)), bM = toM(Number(bcInp.value)),
+          cM = toM(Number(cdInp.value)), dM = toM(Number(daInp.value)),
+          eM = toM(Number(diagInp.value));
+
+        if ([aM, bM, cM, dM, eM].some(x => !Number.isFinite(x) || x <= 0)) {
+          showError("Enter all positive numbers."); saveState(); return;
+        }
+
+        const diagChoice = diagPick.value;
+
+        const areas = computeAreasFor(diagChoice, aM, bM, cM, dM, eM);
+        if (areas.err) { showError(areas.err); saveState(); return; }
+
+        let pts = buildGeometryABTop(diagChoice, aM, bM, cM, dM, eM);
+        if (!pts) { showError("No valid geometry for the given lengths."); return; }
+
+        pts = applyFacing(pts, facingEdgeSel.value, facingDirSel.value);
+
+        last.A1M2 = areas.A1;
+        last.A2M2 = areas.A2;
+        last.areaM2 = areas.A1 + areas.A2;
+        last.perimM = aM + bM + cM + dM;
+        last.aM = aM; last.bM = bM; last.cM = cM; last.dM = dM; last.eM = eM;
+        last.diagChoice = diagChoice;
+        last.pts = pts;
+
+        perEl.textContent = `${fmt(fromM(last.perimM))} ${uLabel()}`;
+        areaEl.textContent = formatArea(last.areaM2, areaUnits.value);
+
+        draw(pts);
+        buildSteps({ aM, bM, cM, dM, eM, diagChoice, A1: last.A1M2, A2: last.A2M2 });
+        saveState();
+        showSave();
+
+        document.getElementById('canvasWrap').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+
+      function showError(msg) {
+        errEl.textContent = msg;
+        errEl.style.display = 'block';
+        areaEl.textContent = '—';
+        perEl.textContent = '—';
+        stepsEl.innerHTML = '';
+        last.stepsBlocks = [];
+        drawGrid(); hideSave();
+      }
+
+      // Screen drawing (unchanged visuals)
+      function draw(pts) {
+        const W = canvas.width / deviceScale, H = canvas.height / deviceScale, pad = 56;
+        let minx = Infinity, miny = Infinity, maxx = -Infinity, maxy = -Infinity;
+        for (const p of pts) { if (p.x < minx) minx = p.x; if (p.y < miny) miny = p.y; if (p.x > maxx) maxx = p.x; if (p.y > maxy) maxy = p.y; }
+        const spanX = (maxx - minx) || 1, spanY = (maxy - miny) || 1;
+        const scale = 0.84 * Math.min((W - 2 * pad) / spanX, (H - 2 * pad) / spanY);
+        const offX = pad + ((W - 2 * pad) - scale * spanX) / 2;
+        const offY = pad + ((H - 2 * pad) - scale * spanY) / 2;
+        const sx = x => offX + (x - minx) * scale;
+        const sy = y => H - (offY + (y - miny) * scale);
+
+        drawGrid();
+        drawCore(ctx, W, H, pts, sx, sy, scale, true);
+        scaleInfo.textContent = `autoscale ~ ${fmt(1 / scale, 3)} ${uLabel()}/px`;
+      }
+
+      function drawCore(context, W, H, pts, sx, sy, scale, includeDiagonal = true) {
+        context.beginPath(); context.moveTo(sx(pts[0].x), sy(pts[0].y));
+        for (let i = 1; i < pts.length; i++) context.lineTo(sx(pts[i].x), sy(pts[i].y));
+        context.closePath();
+        context.fillStyle = "rgba(37,99,235,0.10)";
+        context.fill(); context.lineWidth = 2; context.strokeStyle = "#111827"; context.stroke();
+
+        const diagIdx = (last.diagChoice === 'AC') ? [0, 2] : [1, 3];
+        if (includeDiagonal) {
+          context.setLineDash([6, 6]);
+          context.beginPath(); context.moveTo(sx(pts[diagIdx[0]].x), sy(pts[diagIdx[0]].y)); context.lineTo(sx(pts[diagIdx[1]].x), sy(pts[diagIdx[1]].y));
+          context.strokeStyle = "#6b7280"; context.stroke(); context.setLineDash([]);
+        }
+
+        ["A", "B", "C", "D"].forEach((name, i) => {
+          const p = pts[i];
+          context.beginPath(); context.arc(sx(p.x), sy(p.y), 3.5, 0, Math.PI * 2); context.fillStyle = "#111827"; context.fill();
+          context.font = "12px system-ui,-apple-system,Segoe UI,Roboto,Arial";
+          context.fillStyle = "#111827";
+          context.fillText(name, sx(p.x) + 6, sy(p.y) - 6);
+        });
+
+        drawEdgeLabelsFacingDown(context, pts, sx, sy, diagIdx);
+
+        drawFacingTopCenter(context, W);
+        drawTotalAreaBottom(context, W, H);
+
+        const r = 16, cx = 16 + r + 4, cy = 16 + r + 4;
+        drawCompassFixedNorth(context, cx, cy, r);
+      }
+
+      function drawEdgeLabelsFacingDown(context, pts, sx, sy, diagIdx) {
+        const edges = [
+          { i: 0, j: 1, lenM: last.aM, dashed: false },
+          { i: 1, j: 2, lenM: last.bM, dashed: false },
+          { i: 2, j: 3, lenM: last.cM, dashed: false },
+          { i: 3, j: 0, lenM: last.dM, dashed: false },
+          { i: diagIdx[0], j: diagIdx[1], lenM: last.eM, dashed: true }
+        ];
+
+        context.save();
+        context.font = "12px system-ui,-apple-system,Segoe UI,Roboto,Arial";
+        context.textAlign = "center";
+        context.textBaseline = "middle";
+
+        edges.forEach(e => {
+          const p1 = pts[e.i], p2 = pts[e.j];
+          const x1 = sx(p1.x), y1 = sy(p1.y), x2 = sx(p2.x), y2 = sy(p2.y);
+          const mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
+
+          const dx = x2 - x1, dy = y2 - y1;
+          const len = Math.hypot(dx, dy) || 1;
+          let nx = -(dy / len), ny = (dx / len);
+          if (ny < 0) { nx = -nx; ny = -ny; }
+
+          const offset = Math.min(30, 16 + len * 0.02);
+          const lx = mx + nx * offset;
+          const ly = my + ny * offset;
+
+          let ang = Math.atan2(dy, dx);
+          if (Math.abs(ang) > Math.PI / 2) { ang += Math.PI; }
+
+          const text = `${fmt(fromM(e.lenM))} ${uLabel()}`;
+          const padX = 8, h = 18;
+          const w = context.measureText(text).width + padX * 2;
+
+          context.save();
+          context.translate(lx, ly);
+          context.rotate(ang);
+          context.beginPath();
+          roundRect(context, -w / 2, -h / 2, w, h, 8);
+          context.fillStyle = "rgba(255,255,255,0.98)";
+          context.fill();
+          context.lineWidth = 1;
+          context.strokeStyle = e.dashed ? "#9aa3af" : "#e5e7eb";
+          context.stroke();
+
+          context.fillStyle = "#000000";
+          context.fillText(text, 0, 0);
+          context.restore();
+        });
+
+        context.restore();
+      }
+
+      function drawFacingTopCenter(context, W) {
+        const text = `${facingEdgeSel.value} facing ${facingDirSel.value}`;
+        const x = W / 2, y = 22;
+        drawTextBubble(context, x, y, text, true);
+      }
+      function drawTotalAreaBottom(context, W, H) {
+        const text = `Total ${formatArea(last.areaM2, areaUnits.value)}`;
+        const x = W / 2, y = H - 22;
+        drawTextBubble(context, x, y, text, true);
+      }
+      function drawTextBubble(context, x, y, text, emph = false) {
+        context.save();
+        context.font = emph ? "bold 13px system-ui,-apple-system,Segoe UI,Roboto,Arial"
+          : "12px system-ui,-apple-system,Segoe UI,Roboto,Arial";
+        const padX = 8;
+        const w = context.measureText(text).width + padX * 2;
+        const h = emph ? 22 : 18;
+
+        context.beginPath();
+        roundRect(context, x - w / 2, y - h / 2, w, h, 8);
+        context.fillStyle = "rgba(255,255,255,0.98)";
+        context.fill();
+        context.strokeStyle = emph ? "#2563eb" : "#e5e7eb";
+        context.lineWidth = emph ? 1.5 : 1;
+        context.stroke();
+
+        context.fillStyle = "#000000";
+        context.textAlign = "center";
+        context.textBaseline = "middle";
+        context.fillText(text, x, y);
+        context.restore();
+      }
+      function roundRect(context, x, y, w, h, r) {
+        const rr = Math.min(r, w / 2, h / 2);
+        context.moveTo(x + rr, y);
+        context.arcTo(x + w, y, x + w, y + h, rr);
+        context.arcTo(x + w, y + h, x, y + h, rr);
+        context.arcTo(x, y + h, x, y, rr);
+        context.arcTo(x, y, x + w, y, rr);
+        context.closePath();
+      }
+
+      function drawCompassFixedNorth(context, cx, cy, r) {
+        context.save();
+        context.beginPath(); context.arc(cx, cy, r, 0, Math.PI * 2);
+        context.strokeStyle = "#9aa3af"; context.lineWidth = 1; context.stroke();
+
+        context.font = "10px system-ui,-apple-system,Segoe UI,Roboto,Arial";
+        context.fillStyle = "#6b7280"; context.textAlign = "center";
+        context.fillText("N", cx, cy - r - 6);
+
+        const ang = 90 * Math.PI / 180;
+        const ax = cx + r * Math.cos(ang);
+        const ay = cy - r * Math.sin(ang);
+        context.beginPath(); context.moveTo(cx, cy); context.lineTo(ax, ay);
+        context.strokeStyle = "#2563eb"; context.lineWidth = 2; context.stroke();
+
+        const ah = 8, aw = 5, backAng = Math.atan2(cy - ay, ax - cx);
+        context.beginPath();
+        context.moveTo(ax, ay);
+        context.lineTo(ax - ah * Math.cos(backAng) + aw * Math.sin(backAng),
+          ay + ah * Math.sin(backAng) + aw * Math.cos(backAng));
+        context.lineTo(ax - ah * Math.cos(backAng) - aw * Math.sin(backAng),
+          ay + ah * Math.sin(backAng) - aw * Math.cos(backAng));
+        context.closePath(); context.fillStyle = "#2563eb"; context.fill();
+        context.restore();
+      }
+
+      function drawGrid() {
+        const W = canvas.width / deviceScale, H = canvas.height / deviceScale;
+        ctx.setTransform(deviceScale, 0, 0, deviceScale, 0, 0);
+        ctx.clearRect(0, 0, W, H);
+        ctx.strokeStyle = "#eef1f6"; ctx.lineWidth = 1;
+        for (let x = 0; x < W; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+        for (let y = 0; y < H; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+      }
+
+      function buildSteps({ aM, bM, cM, dM, eM, diagChoice, A1, A2 }) {
+        const u = uLabel();
+        const aU = fromM(aM), bU = fromM(bM), cU = fromM(cM), dU = fromM(dM), eU = fromM(eM);
+
+        function triBlock(title, sides, a, b, c, area_m2) {
+          const s = (a + b + c) / 2;
+          const sa = s - a, sb = s - b, sc = s - c;
+          const area_u2 = Math.sqrt(Math.max(s * sa * sb * sc, 0));
+
+          const html = `
+        <div class="stepbox">
+          <h4>${title}</h4>
+          <div class="mono small">
+            Given: ${sides}<br/>
+            s = (a + b + c) / 2 = (${fmt(a + b + c)} ${u}) / 2 = <b>${fmt(s)}</b> ${u}<br/>
+            s − a = <b>${fmt(sa)}</b> ${u}<br/>
+            s − b = <b>${fmt(sb)}</b> ${u}<br/>
+            s − c = <b>${fmt(sc)}</b> ${u}<br/>
+            Area (in ${u}²) = √[ s(s−a)(s−b)(s−c) ] = <b>${fmt(area_u2)}</b> ${u}²<br/>
+            Converted to ${areaUnits.value}: <b>${formatArea(area_m2, areaUnits.value)}</b>
+          </div>
+        </div>`;
+          const lines = [
+            `${title}`,
+            `  Given: ${sides}`,
+            `  s = (a + b + c) / 2 = (${fmt(a + b + c)} ${u}) / 2 = ${fmt(s)} ${u}`,
+            `  s - a = ${fmt(sa)} ${u}`,
+            `  s - b = ${fmt(sb)} ${u}`,
+            `  s - c = ${fmt(sc)} ${u}`,
+            `  Area (in ${u}²) = √[s(s-a)(s-b)(s-c)] = ${fmt(area_u2)} ${u}²`,
+            `  Converted to ${areaUnits.value}: ${formatArea(area_m2, areaUnits.value)}`
+          ];
+          return { html, lines };
+        }
+
+        let tri1, tri2, tri1Title, tri2Title, sides1, sides2;
+        if (diagChoice === 'AC') {
+          tri1Title = 'Triangle ABC';
+          tri2Title = 'Triangle ACD';
+          sides1 = `AB=${fmt(aU)} ${u}, BC=${fmt(bU)} ${u}, AC=${fmt(eU)} ${u}`;
+          sides2 = `DA=${fmt(dU)} ${u}, CD=${fmt(cU)} ${u}, AC=${fmt(eU)} ${u}`;
+          tri1 = triBlock(tri1Title, sides1, aU, bU, eU, A1);
+          tri2 = triBlock(tri2Title, sides2, dU, cU, eU, A2);
+        } else {
+          tri1Title = 'Triangle ABD';
+          tri2Title = 'Triangle BCD';
+          sides1 = `AB=${fmt(aU)} ${u}, AD=${fmt(dU)} ${u}, BD=${fmt(eU)} ${u}`;
+          sides2 = `BC=${fmt(bU)} ${u}, CD=${fmt(cU)} ${u}, BD=${fmt(eU)} ${u}`;
+          tri1 = triBlock(tri1Title, sides1, aU, dU, eU, A1);
+          tri2 = triBlock(tri2Title, sides2, bU, cU, eU, A2);
+        }
+
+        const totalHTML = `
+      <div class="stepbox">
+        <h4>Total Area (Triangulation)</h4>
+        <div class="mono small">
+          Total = ${formatArea(A1, areaUnits.value)} + ${formatArea(A2, areaUnits.value)}<br/>
+          = <b>${formatArea(A1 + A2, areaUnits.value)}</b>
+        </div>
+      </div>`;
+        const totalLines = [
+          `Total Area (Triangulation)`,
+          `  Total = ${formatArea(A1, areaUnits.value)} + ${formatArea(A2, areaUnits.value)}`,
+          `        = ${formatArea(A1 + A2, areaUnits.value)}`
+        ];
+
+        stepsEl.innerHTML = tri1.html + tri2.html + totalHTML;
+        last.stepsBlocks = [
+          { title: tri1Title, lines: tri1.lines },
+          { title: tri2Title, lines: tri2.lines },
+          { title: 'Total', lines: totalLines }
+        ];
+      }
+
+      // --------- EXPORT: Only the diagram at its current on-screen size (no scaling/no steps) ---------
+      function exportPNG() {
+        if (!last.pts || !canvas) return;
+
+        // Ensure preview is up to date (labels & bubbles are already drawn in draw())
+        // Copy the visible canvas exactly as-is, onto a white background.
+        const out = document.createElement('canvas');
+        out.width = canvas.width;
+        out.height = canvas.height;
+
+        const g = out.getContext('2d');
+        g.imageSmoothingEnabled = true;
+        g.imageSmoothingQuality = 'high';
+
+        // White background so PNG isn't transparent in viewers/printers
+        g.fillStyle = '#ffffff';
+        g.fillRect(0, 0, out.width, out.height);
+
+        // Draw current preview pixels 1:1
+        g.drawImage(canvas, 0, 0);
+
+        const a = document.createElement('a');
+        const ts = new Date().toISOString().replace(/[:.]/g, '-');
+        a.download = `quadrilateral-diagram-${ts}.png`;
+        a.href = out.toDataURL('image/png');
+        a.click();
+      }
+      // ---------------- END EXPORT ----------------
+
+      function showSave() { saveBtn.style.display = 'inline-block'; saveBtn.disabled = false; }
+      function hideSave() { saveBtn.style.display = 'none'; saveBtn.disabled = true; }
+
+      calcBtn.addEventListener('click', computeAndDraw);
+      clearBtn.addEventListener('click', () => {
+        [abInp, bcInp, cdInp, daInp, diagInp].forEach(el => el.value = '');
+        errEl.style.display = 'none'; areaEl.textContent = '—'; perEl.textContent = '—';
+        stepsEl.innerHTML = '';
+        last.areaM2 = null; last.perimM = null; last.pts = null; last.A1M2 = null; last.A2M2 = null;
+        last.aM = null; last.bM = null; last.cM = null; last.dM = null; last.eM = null; last.diagChoice = 'AC'; last.stepsBlocks = [];
+        drawGrid(); saveState(); hideSave();
+      });
+      saveBtn.addEventListener('click', exportPNG);
+
+      [abInp, bcInp, cdInp, daInp, diagInp].forEach(el => el.addEventListener('input', saveState));
+
+      [lengthUnits, areaUnits, facingEdgeSel, facingDirSel, diagPick].forEach(el => el.addEventListener('change', () => {
+        if (el === diagPick) { updateDiagonalUI(); saveState(); return; } // no redraw/recompute here
+
+        saveState();
+
+        if (el === areaUnits && last.areaM2 != null) {
+          areaEl.textContent = formatArea(last.areaM2, areaUnits.value);
+          draw(last.pts);
+          buildSteps({ aM: last.aM, bM: last.bM, cM: last.cM, dM: last.dM, eM: last.eM, diagChoice: last.diagChoice, A1: last.A1M2, A2: last.A2M2 });
+          return;
+        }
+
+        if (el === lengthUnits) {
+          // Length units change meaning of inputs; require explicit Calculate
+          draw(last.pts || []); // keep current view if any
+          return;
+        }
+
+        if ((el === facingEdgeSel || el === facingDirSel) && last.pts) {
+          last.pts = applyFacing(last.pts, facingEdgeSel.value, facingDirSel.value);
+          draw(last.pts);
+          return;
+        }
+      }));
+
+      function anyInputsFilled() {
+        return [abInp, bcInp, cdInp, daInp, diagInp].some(el => el.value && !isNaN(Number(el.value)));
+      }
+
+      // Init
+      sizeCanvas();
+      loadState();
+      updateDiagonalUI();
+      if (anyInputsFilled()) { /* wait for explicit Calculate by design */ drawGrid(); } else { drawGrid(); }
+      hideSave();
+    })();
+  </script>
+</body>
+
+</html>
